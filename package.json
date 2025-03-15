@@ -2,16 +2,31 @@
   "name": "jobcrest-attendance",
   "version": "0.1.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "electron:start": "electron .",
+    "electron:serve": "vue-cli-service electron:serve",
+    "electron:build": "electron-builder"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/vue-fontawesome": "^2.0.10",
+    "bootstrap": "^4.6.2",
+    "bootstrap-vue": "^2.21.2",
+    "chart.js": "^4.4.8",
     "core-js": "^3.8.3",
+    "fs-extra": "^11.3.0",
+    "knex": "^3.1.0",
+    "sqlite3": "^5.1.7",
     "vue": "^2.6.14",
+    "vue-chartjs": "^5.3.2",
     "vue-router": "^3.5.1",
-    "vuex": "^3.6.2"
+    "vuex": "^3.6.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
@@ -21,6 +36,7 @@
     "@vue/cli-plugin-router": "~5.0.0",
     "@vue/cli-plugin-vuex": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "electron": "^35.0.1",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
