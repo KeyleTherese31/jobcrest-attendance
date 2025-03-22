@@ -1,8 +1,16 @@
 <template>
   <div class="dashboard-container">
     <!-- Sidebar Navigation -->
-    <div class="sidebar">
-      <img src="@/assets/logo.jpg" alt="JobCrest Logo" class="logo" />
+    <div :class="['sidebar', { collapsed: isCollapsed }]">
+      <button @click="toggleSidebar" class="toggle-btn">
+        <font-awesome-icon :icon="isCollapsed ? 'bars' : 'times'" />
+      </button>
+      <img
+        v-if="!isCollapsed"
+        src="@/assets/logo.jpg"
+        alt="JobCrest Logo"
+        class="logo"
+      />
       <ul>
         <li
           v-for="item in navItems"
@@ -11,7 +19,7 @@
           :class="{ active: selectedTab === item.name }"
         >
           <font-awesome-icon :icon="item.icon" class="nav-icon" />
-          {{ item.label }}
+          <span v-if="!isCollapsed">{{ item.label }}</span>
         </li>
       </ul>
     </div>
@@ -35,9 +43,11 @@ import {
   faCalendarCheck,
   faFileAlt,
   faUsers,
+  faBars,
+  faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 
-library.add(faChartBar, faCalendarCheck, faFileAlt, faUsers);
+library.add(faChartBar, faCalendarCheck, faFileAlt, faUsers, faBars, faTimes);
 
 export default {
   components: {
@@ -50,6 +60,7 @@ export default {
   data() {
     return {
       selectedTab: "Overview",
+      isCollapsed: false,
       navItems: [
         { name: "Overview", label: "Overview", icon: "chart-bar" },
         {
@@ -80,6 +91,9 @@ export default {
     setTab(tab) {
       this.selectedTab = tab;
     },
+    toggleSidebar() {
+      this.isCollapsed = !this.isCollapsed;
+    },
   },
 };
 </script>
@@ -100,11 +114,22 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: width 0.3s;
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: 80px;
 }
 
 .logo {
   width: 120px;
   margin-bottom: 20px;
+  transition: opacity 0.3s;
+}
+
+.sidebar.collapsed .logo {
+  opacity: 0;
 }
 
 .sidebar ul {
@@ -130,6 +155,24 @@ export default {
 .sidebar li.active {
   background: #00c6fb;
   color: #0d1b2a;
+}
+
+.sidebar.collapsed li {
+  justify-content: center;
+}
+
+.sidebar.collapsed li span {
+  display: none;
+}
+
+/* Toggle Button */
+.toggle-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  margin-bottom: 20px;
 }
 
 /* Icon Styling */
