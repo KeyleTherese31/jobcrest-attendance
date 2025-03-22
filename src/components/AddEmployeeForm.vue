@@ -11,7 +11,25 @@
         <input v-model="newEmployee.name" required />
       </div>
 
-      <!-- Status, Gender, Marital Status in One Row -->
+      <!-- Plant & Shift Selection -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Plant:</label>
+          <select v-model="newEmployee.plant">
+            <option>Plant 1</option>
+            <option>Plant 3</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Shift:</label>
+          <select v-model="newEmployee.shift">
+            <option>A-Shift</option>
+            <option>C-Shift</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Status, Gender, Marital Status -->
       <div class="form-row">
         <div class="form-group">
           <label>Status:</label>
@@ -76,6 +94,8 @@ export default {
       newEmployee: {
         employeeNo: "",
         name: "",
+        plant: "Plant 1", // Default plant
+        shift: "A-Shift", // Default shift
         status: "Active",
         processCertification: "",
         supervisor: "",
@@ -90,7 +110,7 @@ export default {
   methods: {
     addEmployee() {
       console.log("Employee added:", this.newEmployee);
-      this.$router.push("/employee-list");
+      this.$router.push("/dashboard");
     },
   },
 };
