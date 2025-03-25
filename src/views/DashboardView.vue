@@ -15,27 +15,24 @@
         <li
           v-for="item in navItems"
           :key="item.name"
-          @click="setTab(item.name)"
-          :class="{ active: selectedTab === item.name }"
+          :class="{ active: $route.path === item.path }"
         >
-          <font-awesome-icon :icon="item.icon" class="nav-icon" />
-          <span v-if="!isCollapsed">{{ item.label }}</span>
+          <router-link :to="item.path" class="nav-link">
+            <font-awesome-icon :icon="item.icon" class="nav-icon" />
+            <span class="nav-text" v-if="!isCollapsed">{{ item.label }}</span>
+          </router-link>
         </li>
       </ul>
     </div>
 
     <!-- Main Dashboard Content -->
     <div class="content">
-      <component :is="currentView"></component>
+      <router-view></router-view>
     </div>
   </div>
 </template>
 
 <script>
-import Overview from "@/components/OverviewGraphs.vue";
-import SetAttendance from "@/components/SetAttendance.vue";
-import TrackReport from "@/components/TrackReport.vue";
-import EmployeeList from "@/components/EmployeeList.vue";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
@@ -52,45 +49,39 @@ library.add(faChartBar, faCalendarCheck, faFileAlt, faUsers, faBars, faTimes);
 export default {
   components: {
     FontAwesomeIcon,
-    Overview,
-    SetAttendance,
-    TrackReport,
-    EmployeeList,
   },
   data() {
     return {
-      selectedTab: "Overview",
       isCollapsed: false,
       navItems: [
-        { name: "Overview", label: "Overview", icon: "chart-bar" },
+        {
+          name: "Overview",
+          label: "Overview",
+          path: "/dashboard",
+          icon: "chart-bar",
+        },
         {
           name: "SetAttendance",
-          label: "Set Daily Attendance",
+          label: "Set Attendance",
+          path: "/dashboard/attendance",
           icon: "calendar-check",
         },
-        { name: "TrackReport", label: "Track Report", icon: "file-alt" },
-        { name: "EmployeeList", label: "Employee List", icon: "users" },
+        {
+          name: "TrackReport",
+          label: "Track Report",
+          path: "/dashboard/track",
+          icon: "file-alt",
+        },
+        {
+          name: "EmployeeList",
+          label: "Employee List",
+          path: "/dashboard/employees",
+          icon: "users",
+        },
       ],
     };
   },
-  computed: {
-    currentView() {
-      switch (this.selectedTab) {
-        case "SetAttendance":
-          return "SetAttendance";
-        case "TrackReport":
-          return "TrackReport";
-        case "EmployeeList":
-          return "EmployeeList";
-        default:
-          return "Overview";
-      }
-    },
-  },
   methods: {
-    setTab(tab) {
-      this.selectedTab = tab;
-    },
     toggleSidebar() {
       this.isCollapsed = !this.isCollapsed;
     },
@@ -108,13 +99,13 @@ export default {
 
 /* Sidebar Styling */
 .sidebar {
-  width: 250px;
+  width: 240px;
   background: #1b263b;
-  padding: 20px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: width 0.3s;
+  transition: width 0.3s ease-in-out;
   overflow: hidden;
 }
 
@@ -124,7 +115,7 @@ export default {
 
 .logo {
   width: 120px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   transition: opacity 0.3s;
 }
 
@@ -136,20 +127,25 @@ export default {
   list-style: none;
   padding: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
 }
 
+/* Nav Buttons - Aligned in a single line */
 .sidebar li {
-  padding: 15px;
-  margin: 10px 0;
-  text-align: center;
-  border-radius: 30px;
+  padding: 12px;
+  text-align: left;
+  border-radius: 8px;
   cursor: pointer;
   background: #1e3a5f;
   transition: 0.3s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-start;
+  width: 100%;
+  padding-left: 15px;
 }
 
 .sidebar li.active {
@@ -157,32 +153,52 @@ export default {
   color: #0d1b2a;
 }
 
+/* Nav Items in One Line */
+.nav-link {
+  color: inherit;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px; /* Adds spacing between icon and text */
+  white-space: nowrap; /* Prevents text wrapping */
+}
+
+/* Increased Icon Size and Spacing */
+.nav-icon {
+  font-size: 20px;
+  min-width: 24px; /* Ensures consistent alignment */
+}
+
+.nav-text {
+  font-size: 16px;
+}
+
+/* Sidebar Collapsed */
 .sidebar.collapsed li {
   justify-content: center;
+  width: 100%;
+  padding-left: 0;
 }
 
-.sidebar.collapsed li span {
+.sidebar.collapsed .nav-text {
   display: none;
-}
-
-/* Toggle Button */
-.toggle-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  margin-bottom: 20px;
-}
-
-/* Icon Styling */
-.nav-icon {
-  font-size: 18px;
 }
 
 /* Main Content */
 .content {
   flex: 1;
   padding: 20px;
+}
+
+/* Button Styling */
+.toggle-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: 0.3s;
 }
 </style>

@@ -37,7 +37,13 @@
         <table class="employee-table">
           <thead>
             <tr>
-              <th v-for="header in tableHeaders" :key="header">{{ header }}</th>
+              <th>Status</th>
+              <th>Employee No</th>
+              <th>Name</th>
+              <th>Process Certification</th>
+              <th>Supervisor</th>
+              <th>Date Hired</th>
+              <th>Tenure</th>
             </tr>
           </thead>
           <tbody>
@@ -45,16 +51,17 @@
               v-for="employee in filteredEmployees"
               :key="employee.employeeNo"
             >
+              <td>
+                <span :class="['status-badge', employee.status.toLowerCase()]">
+                  {{ employee.status }}
+                </span>
+              </td>
               <td>{{ employee.employeeNo }}</td>
               <td>{{ employee.name }}</td>
-              <td>{{ employee.status }}</td>
               <td>{{ employee.processCertification }}</td>
               <td>{{ employee.supervisor }}</td>
               <td>{{ employee.dateHired }}</td>
               <td>{{ employee.tenure }}</td>
-              <td>{{ employee.dateOfCertification }}</td>
-              <td>{{ employee.gender }}</td>
-              <td>{{ employee.maritalStatus }}</td>
             </tr>
           </tbody>
         </table>
@@ -66,9 +73,9 @@
     <!-- Add Employee Section -->
     <div class="add-employee-section">
       <h3>Add Employee(s)</h3>
-      <router-link to="/add-employee" class="add-btn"
-        >+ Add Manually</router-link
-      >
+      <router-link to="/dashboard/employees/add" class="add-btn">
+        Add Manually
+      </router-link>
 
       <!-- File Input for Importing Employees -->
       <input
@@ -96,18 +103,6 @@ export default {
       shifts: ["A-Shift", "C-Shift", "All Shift"],
       activeShift: "All Shift",
       searchQuery: "",
-      tableHeaders: [
-        "Employee No",
-        "Name",
-        "Status",
-        "Process Certification",
-        "Supervisor",
-        "Date Hired",
-        "Tenure",
-        "Date of Certification",
-        "Gender",
-        "Marital Status",
-      ],
       employees: [], // Employee list (dummy or from API)
     };
   },
@@ -158,32 +153,26 @@ export default {
       const jsonData = XLSX.utils.sheet_to_json(sheet);
 
       this.employees = jsonData.map((row) => ({
+        status: row["Status"] || "",
         employeeNo: row["Employee No"] || "",
         name: row["Name"] || "",
-        status: row["Status"] || "",
         processCertification: row["Process Certification"] || "",
         supervisor: row["Supervisor"] || "",
         dateHired: row["Date Hired"] || "",
         tenure: row["Tenure"] || "",
-        dateOfCertification: row["Date of Certification"] || "",
-        gender: row["Gender"] || "",
-        maritalStatus: row["Marital Status"] || "",
       }));
     },
     processTextOrDatFile(data) {
       const rows = data.split("\n").map((line) => line.split(","));
 
       this.employees = rows.slice(1).map((row) => ({
-        employeeNo: row[0] || "",
-        name: row[1] || "",
-        status: row[2] || "",
+        status: row[0] || "",
+        employeeNo: row[1] || "",
+        name: row[2] || "",
         processCertification: row[3] || "",
         supervisor: row[4] || "",
         dateHired: row[5] || "",
         tenure: row[6] || "",
-        dateOfCertification: row[7] || "",
-        gender: row[8] || "",
-        maritalStatus: row[9] || "",
       }));
     },
   },
@@ -229,6 +218,28 @@ export default {
 .employee-table td {
   padding: 10px;
   border-bottom: 1px solid #555;
+}
+
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #28a745;
+  color: white;
+}
+
+.status-badge.inactive {
+  background: #dc3545;
+  color: white;
+}
+
+.status-badge.temporary {
+  background: #ffc107;
+  color: black;
 }
 
 .file-input {

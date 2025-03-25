@@ -3,8 +3,11 @@ import VueRouter from "vue-router";
 import WelcomeView from "@/views/WelcomeView.vue";
 import LoginView from "@/views/LoginView.vue";
 import DashboardView from "@/views/DashboardView.vue";
-import EmployeeList from "../components/EmployeeList.vue";
-import AddEmployeeForm from "../components/AddEmployeeForm.vue";
+import Overview from "@/components/OverviewGraphs.vue";
+import SetAttendance from "@/components/SetAttendance.vue";
+import TrackReport from "@/components/TrackReport.vue";
+import EmployeeList from "@/components/EmployeeList.vue";
+import { EventBus } from "@/eventBus";
 
 Vue.use(VueRouter);
 
@@ -15,25 +18,31 @@ const routes = [
     path: "/dashboard",
     component: DashboardView,
     children: [
+      { path: "overview", component: Overview },
+      { path: "attendance", component: SetAttendance },
+      { path: "track", component: TrackReport },
+      { path: "employees", component: EmployeeList },
       {
-        path: "employee-list",
-        name: "EmployeeList",
-        component: EmployeeList,
+        path: "employees/add",
+        component: () => import("@/components/AddEmployeeForm.vue"),
       },
-      {
-        path: "add-employee",
-        name: "AddEmployeeForm",
-        component: AddEmployeeForm,
-      },
+      { path: "", redirect: "overview" },
     ],
   },
-  { path: "/employee-list", component: EmployeeList },
-  { path: "/add-employee", component: AddEmployeeForm },
+  { path: "*", redirect: "/" },
 ];
 
 const router = new VueRouter({
-  mode: "history", // Correct for Vue Router 3
+  mode: "history",
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  if (from.path === "/dashboard/employees/add") {
+    EventBus.$emit("confirm-navigation", to, next);
+  } else {
+    next();
+  }
 });
 
 export default router;
