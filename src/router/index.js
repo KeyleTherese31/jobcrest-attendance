@@ -7,7 +7,6 @@ import Overview from "@/components/OverviewGraphs.vue";
 import SetAttendance from "@/components/SetAttendance.vue";
 import TrackReport from "@/components/TrackReport.vue";
 import EmployeeList from "@/components/EmployeeList.vue";
-import { EventBus } from "@/eventBus";
 
 Vue.use(VueRouter);
 
@@ -35,14 +34,6 @@ const routes = [
 const router = new VueRouter({
   mode: "history",
   routes,
-});
-
-router.beforeEach((to, from, next) => {
-  if (from.path === "/dashboard/employees/add") {
-    EventBus.$emit("confirm-navigation", to, next);
-  } else {
-    next();
-  }
 });
 
 export default router;

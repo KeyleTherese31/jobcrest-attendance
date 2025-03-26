@@ -1,6 +1,22 @@
 <template>
   <div class="employee-list-container">
-    <h2>Employee List</h2>
+    <div class="header">
+      <h2>Employee List</h2>
+      <div class="actions">
+        <router-link to="/dashboard/employees/add" class="add-btn">
+          ➕ Add Employee
+        </router-link>
+        <input
+          type="file"
+          @change="importFile"
+          accept=".xlsx, .csv, .txt, .dat"
+          class="file-input"
+        />
+        <button class="import-btn" @click="triggerFileInput">
+          📂 Import File
+        </button>
+      </div>
+    </div>
 
     <!-- Navigation for Plants & Shifts -->
     <div class="nav-buttons">
@@ -19,14 +35,14 @@
         <button
           v-for="shift in shifts"
           :key="shift"
-          @click="activeShift = shift"
+          @click="toggleShift(shift)"
           :class="['shift-btn', { active: activeShift === shift }]"
         >
           {{ shift }}
         </button>
       </div>
 
-      <!-- Employee Table -->
+      <!-- Employee Table with Pagination -->
       <div v-if="activeShift">
         <input
           v-model="searchQuery"
@@ -44,11 +60,12 @@
               <th>Supervisor</th>
               <th>Date Hired</th>
               <th>Tenure</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="employee in filteredEmployees"
+              v-for="(employee, index) in paginatedEmployees"
               :key="employee.employeeNo"
             >
               <td>
@@ -62,32 +79,29 @@
               <td>{{ employee.supervisor }}</td>
               <td>{{ employee.dateHired }}</td>
               <td>{{ employee.tenure }}</td>
+              <td>
+                <button @click="editEmployee(index)" class="edit-btn">
+                  ✏️
+                </button>
+                <button @click="confirmDelete(index)" class="delete-btn">
+                  ❌
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- Pagination Controls -->
+        <div class="pagination">
+          <button @click="prevPage" :disabled="currentPage === 1">
+            ⬅️ Previous
+          </button>
+          <span>Page {{ currentPage }} of {{ totalPages }}</span>
+          <button @click="nextPage" :disabled="currentPage >= totalPages">
+            Next ➡️
+          </button>
+        </div>
       </div>
-    </div>
-
-    <br />
-    <br />
-    <!-- Add Employee Section -->
-    <div class="add-employee-section">
-      <h3>Add Employee(s)</h3>
-      <router-link to="/dashboard/employees/add" class="add-btn">
-        Add Manually
-      </router-link>
-
-      <!-- File Input for Importing Employees -->
-      <input
-        type="file"
-        @change="importFile"
-        accept=".xlsx, .csv, .txt, .dat"
-        class="file-input"
-      />
-
-      <button class="import-btn" @click="triggerFileInput">
-        📂 Import File
-      </button>
     </div>
   </div>
 </template>
@@ -99,23 +113,50 @@ export default {
   data() {
     return {
       plants: [{ name: "Plant 1" }, { name: "Plant 3" }],
-      activePlant: "Plant 1", // Default selected plant
+      activePlant: "Plant 1",
       shifts: ["A-Shift", "C-Shift", "All Shift"],
       activeShift: "All Shift",
       searchQuery: "",
-      employees: [], // Employee list (dummy or from API)
+      employees: [], // Employee list
+      currentPage: 1,
+      itemsPerPage: 5, // Limit table to 3 employees per page
     };
   },
   computed: {
     filteredEmployees() {
-      return this.employees.filter((emp) =>
-        emp.name.toLowerCase().includes(this.searchQuery.toLowerCase())
+      return this.employees.filter(
+        (emp) =>
+          emp.name.toLowerCase().includes(this.searchQuery.toLowerCase()) &&
+          emp.plant === this.activePlant &&
+          (this.activeShift === "All Shift" || emp.shift === this.activeShift)
       );
+    },
+    totalPages() {
+      return Math.ceil(this.filteredEmployees.length / this.itemsPerPage);
+    },
+    paginatedEmployees() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filteredEmployees.slice(start, start + this.itemsPerPage);
     },
   },
   methods: {
     togglePlant(plant) {
       this.activePlant = plant;
+      this.currentPage = 1;
+    },
+    toggleShift(shift) {
+      this.activeShift = shift;
+      this.currentPage = 1;
+    },
+    prevPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+      }
+    },
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+      }
     },
     triggerFileInput() {
       document.querySelector(".file-input").click();
@@ -134,14 +175,12 @@ export default {
         } else if (file.name.endsWith(".txt") || file.name.endsWith(".dat")) {
           this.processTextOrDatFile(data);
         } else {
-          alert(
-            "Unsupported file format. Please upload an Excel, CSV, TXT, or DAT file."
-          );
+          alert("Unsupported file format.");
         }
       };
 
       if (file.name.endsWith(".dat")) {
-        reader.readAsText(file); // Read as text (if plain)
+        reader.readAsText(file);
       } else {
         reader.readAsBinaryString(file);
       }
@@ -160,20 +199,17 @@ export default {
         supervisor: row["Supervisor"] || "",
         dateHired: row["Date Hired"] || "",
         tenure: row["Tenure"] || "",
+        plant: row["Plant"] || "",
+        shift: row["Shift"] || "",
       }));
     },
-    processTextOrDatFile(data) {
-      const rows = data.split("\n").map((line) => line.split(","));
-
-      this.employees = rows.slice(1).map((row) => ({
-        status: row[0] || "",
-        employeeNo: row[1] || "",
-        name: row[2] || "",
-        processCertification: row[3] || "",
-        supervisor: row[4] || "",
-        dateHired: row[5] || "",
-        tenure: row[6] || "",
-      }));
+    confirmDelete(index) {
+      if (confirm("Are you sure you want to delete this employee?")) {
+        this.employees.splice(index, 1);
+      }
+    },
+    editEmployee(index) {
+      alert(`Edit employee: ${this.employees[index].name}`);
     },
   },
 };
@@ -200,6 +236,28 @@ export default {
 .nav-btn.active,
 .shift-btn.active {
   background: #00c6fb;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.add-btn,
+.import-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background: #28a745;
+  color: white;
 }
 
 .search-bar {
@@ -254,5 +312,36 @@ export default {
   color: white;
   border-radius: 5px;
   margin-left: 10px;
+}
+
+.editable {
+  border: 1px solid #ccc;
+  padding: 5px;
+  width: 100%;
+}
+
+.delete-btn {
+  background: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.pagination button {
+  padding: 5px 10px;
+  margin: 0 5px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  background: #00c6fb;
+  color: white;
 }
 </style>
