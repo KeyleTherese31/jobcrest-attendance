@@ -119,7 +119,7 @@ export default {
       searchQuery: "",
       employees: [], // Employee list
       currentPage: 1,
-      itemsPerPage: 5, // Limit table to 3 employees per page
+      itemsPerPage: 3, // Pagination limit
     };
   },
   computed: {
@@ -191,10 +191,11 @@ export default {
       const sheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-      this.employees = jsonData.map((row) => ({
-        status: row["Status"] || "",
+      // Convert data into employee objects
+      let newEmployees = jsonData.map((row) => ({
         employeeNo: row["Employee No"] || "",
         name: row["Name"] || "",
+        status: row["Status"] || "",
         processCertification: row["Process Certification"] || "",
         supervisor: row["Supervisor"] || "",
         dateHired: row["Date Hired"] || "",
@@ -202,15 +203,44 @@ export default {
         plant: row["Plant"] || "",
         shift: row["Shift"] || "",
       }));
+
+      // Add new employees while preventing duplicates
+      this.mergeEmployees(newEmployees);
+    },
+    mergeEmployees(newEmployees) {
+      const existingEmployeeNos = new Set(
+        this.employees.map((e) => e.employeeNo)
+      );
+
+      newEmployees.forEach((employee) => {
+        if (!existingEmployeeNos.has(employee.employeeNo)) {
+          this.employees.push(employee); // Add only if not duplicate
+        }
+      });
+
+      this.saveEmployees(); // Save updated list
+    },
+    saveEmployees() {
+      localStorage.setItem("employees", JSON.stringify(this.employees));
+    },
+    loadEmployees() {
+      const storedEmployees = localStorage.getItem("employees");
+      if (storedEmployees) {
+        this.employees = JSON.parse(storedEmployees);
+      }
     },
     confirmDelete(index) {
       if (confirm("Are you sure you want to delete this employee?")) {
         this.employees.splice(index, 1);
+        this.saveEmployees(); // Save after deletion
       }
     },
     editEmployee(index) {
       alert(`Edit employee: ${this.employees[index].name}`);
     },
+  },
+  mounted() {
+    this.loadEmployees(); // Load data when component is mounted
   },
 };
 </script>
