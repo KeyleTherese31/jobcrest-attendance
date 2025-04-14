@@ -108,6 +108,7 @@
 
 <script>
 import * as XLSX from "xlsx";
+import axios from "axios"; // Add axios for HTTP requests
 
 export default {
   data() {
@@ -207,6 +208,21 @@ export default {
       // Add new employees while preventing duplicates
       this.mergeEmployees(newEmployees);
     },
+    processTextOrDatFile(data) {
+      const rows = data.split("\n").map((row) => row.split(","));
+      let newEmployees = rows.map((row) => ({
+        employeeNo: row[0] || "",
+        name: row[1] || "",
+        status: row[2] || "",
+        processCertification: row[3] || "",
+        supervisor: row[4] || "",
+        dateHired: row[5] || "",
+        tenure: row[6] || "",
+        plant: row[7] || "",
+        shift: row[8] || "",
+      }));
+      this.mergeEmployees(newEmployees);
+    },
     mergeEmployees(newEmployees) {
       const existingEmployeeNos = new Set(
         this.employees.map((e) => e.employeeNo)
@@ -218,10 +234,17 @@ export default {
         }
       });
 
-      this.saveEmployees(); // Save updated list
+      this.saveEmployeesToDatabase(); // Save updated list to backend
     },
-    saveEmployees() {
-      localStorage.setItem("employees", JSON.stringify(this.employees));
+    saveEmployeesToDatabase() {
+      axios
+        .post("http://localhost:5000/api/employees", this.employees)
+        .then((response) => {
+          console.log("Employees saved successfully:", response);
+        })
+        .catch((error) => {
+          console.error("Error saving employees:", error);
+        });
     },
     loadEmployees() {
       const storedEmployees = localStorage.getItem("employees");
@@ -232,7 +255,7 @@ export default {
     confirmDelete(index) {
       if (confirm("Are you sure you want to delete this employee?")) {
         this.employees.splice(index, 1);
-        this.saveEmployees(); // Save after deletion
+        this.saveEmployeesToDatabase(); // Save after deletion
       }
     },
     editEmployee(index) {

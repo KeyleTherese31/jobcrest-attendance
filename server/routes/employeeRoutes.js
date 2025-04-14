@@ -1,40 +1,45 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db");
+const mysql = require("mysql");
 
-// Get all employees
-router.get("/", (req, res) => {
-  db.query("SELECT * FROM employees", (err, results) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json(results);
-  });
+// Set up database connection
+const db = mysql.createConnection({
+  host: "localhost",
+  user: "jcuser", // Your MySQL username
+  password: "jmimgt", // Your MySQL password
+  database: "jobcrest_db", // Your database name
 });
 
-// Add new employee
+db.connect((err) => {
+  if (err) throw err;
+  console.log("Connected to MySQL database!");
+});
+
+// Route to handle adding employees
 router.post("/", (req, res) => {
-  const employee = req.body;
-  db.query("INSERT INTO employees SET ?", employee, (err, result) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json({ message: "Employee added", id: result.insertId });
-  });
-});
+  const employees = req.body; // Receive the employee data
 
-// Update employee
-router.put("/:id", (req, res) => {
-  const { id } = req.params;
-  const updatedData = req.body;
-  db.query("UPDATE employees SET ? WHERE id = ?", [updatedData, id], (err) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json({ message: "Employee updated" });
-  });
-});
+  // Insert employees into the database
+  const insertEmployee =
+    "INSERT INTO employees (employeeNo, name, status, processCertification, supervisor, dateHired, tenure, plant, shift) VALUES ?";
+  const values = employees.map((emp) => [
+    emp.employeeNo,
+    emp.name,
+    emp.status,
+    emp.processCertification,
+    emp.supervisor,
+    emp.dateHired,
+    emp.tenure,
+    emp.plant,
+    emp.shift,
+  ]);
 
-// Delete employee
-router.delete("/:id", (req, res) => {
-  const { id } = req.params;
-  db.query("DELETE FROM employees WHERE id = ?", [id], (err) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json({ message: "Employee deleted" });
+  db.query(insertEmployee, [values], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Failed to save employees" });
+    }
+    res.status(200).json({ message: "Employees saved successfully", result });
   });
 });
 
