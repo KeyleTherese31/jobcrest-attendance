@@ -1,7 +1,9 @@
 <template>
   <div class="welcome-container">
     <div class="content text-center">
-      <h1 class="text-bordered">Welcome, JobCrest Admin!</h1>
+      <h1 class="text-bordered">
+        Welcome to DL Attendance Tracker, JobCrest Admin!
+      </h1>
       <button class="btn btn-primary mt-3" @click="proceedToLogin">
         Proceed to Login
       </button>

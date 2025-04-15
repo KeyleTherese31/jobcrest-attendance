@@ -108,7 +108,7 @@
 
 <script>
 import * as XLSX from "xlsx";
-import axios from "axios"; // Add axios for HTTP requests
+import axios from "axios";
 
 export default {
   data() {
@@ -118,9 +118,9 @@ export default {
       shifts: ["A-Shift", "C-Shift", "All Shift"],
       activeShift: "All Shift",
       searchQuery: "",
-      employees: [], // Employee list
+      employees: [],
       currentPage: 1,
-      itemsPerPage: 3, // Pagination limit
+      itemsPerPage: 5,
     };
   },
   computed: {
@@ -138,6 +138,16 @@ export default {
     paginatedEmployees() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
       return this.filteredEmployees.slice(start, start + this.itemsPerPage);
+    },
+  },
+  watch: {
+    $route(to, from) {
+      if (
+        from.path === "/dashboard/employees/add" &&
+        to.path === "/dashboard/employees"
+      ) {
+        this.loadEmployees();
+      }
     },
   },
   methods: {
@@ -192,7 +202,6 @@ export default {
       const sheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-      // Convert data into employee objects
       let newEmployees = jsonData.map((row) => ({
         employeeNo: row["Employee No"] || "",
         name: row["Name"] || "",
@@ -205,7 +214,6 @@ export default {
         shift: row["Shift"] || "",
       }));
 
-      // Add new employees while preventing duplicates
       this.mergeEmployees(newEmployees);
     },
     processTextOrDatFile(data) {
@@ -230,11 +238,11 @@ export default {
 
       newEmployees.forEach((employee) => {
         if (!existingEmployeeNos.has(employee.employeeNo)) {
-          this.employees.push(employee); // Add only if not duplicate
+          this.employees.push(employee);
         }
       });
 
-      this.saveEmployeesToDatabase(); // Save updated list to backend
+      this.saveEmployeesToDatabase();
     },
     saveEmployeesToDatabase() {
       axios
@@ -247,23 +255,35 @@ export default {
         });
     },
     loadEmployees() {
-      const storedEmployees = localStorage.getItem("employees");
-      if (storedEmployees) {
-        this.employees = JSON.parse(storedEmployees);
-      }
+      axios
+        .get("http://localhost:5000/api/employees")
+        .then((response) => {
+          this.employees = response.data;
+        })
+        .catch((error) => {
+          console.error("Error loading employees:", error);
+        });
     },
     confirmDelete(index) {
-      if (confirm("Are you sure you want to delete this employee?")) {
-        this.employees.splice(index, 1);
-        this.saveEmployeesToDatabase(); // Save after deletion
+      const employee = this.employees[index];
+      if (confirm(`Are you sure you want to delete ${employee.name}?`)) {
+        axios
+          .delete(`http://localhost:5000/api/employees/${employee.employeeNo}`)
+          .then(() => {
+            this.loadEmployees();
+          })
+          .catch((error) => {
+            console.error("Failed to delete employee:", error);
+          });
       }
     },
     editEmployee(index) {
-      alert(`Edit employee: ${this.employees[index].name}`);
+      const emp = this.employees[index];
+      this.$router.push(`/dashboard/employees/edit/${emp.employeeNo}`);
     },
   },
   mounted() {
-    this.loadEmployees(); // Load data when component is mounted
+    this.loadEmployees();
   },
 };
 </script>

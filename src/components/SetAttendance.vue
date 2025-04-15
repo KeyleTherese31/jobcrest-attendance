@@ -22,15 +22,28 @@
         />
       </div>
 
-      <!-- File Upload Button -->
+      <!-- File Upload and Import Button -->
       <div class="input-group">
         <input
           type="file"
-          @change="importSpreadsheet"
+          ref="fileInput"
           class="form-control file-input"
           accept=".xls, .xlsx, .csv"
         />
-        <button class="btn btn-success upload-btn">Import Spreadsheet</button>
+        <button class="btn btn-success upload-btn" @click="handleImport">
+          Import Spreadsheet
+        </button>
+      </div>
+
+      <!-- Download Button -->
+      <div class="input-group">
+        <label for="fromDate">From:</label>
+        <input type="date" v-model="fromDate" class="form-control" />
+        <label for="toDate">To:</label>
+        <input type="date" v-model="toDate" class="form-control" />
+        <button class="btn btn-secondary" @click="downloadAttendance">
+          Download Data
+        </button>
       </div>
     </div>
 
@@ -45,7 +58,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(employee, index) in filteredEmployees" :key="index">
+        <tr v-for="employee in paginatedEmployees" :key="employee.number">
           <td class="employee-number">{{ employee.number }}</td>
           <td class="employee-name">{{ employee.name }}</td>
           <td>
@@ -57,10 +70,7 @@
                   'btn',
                   employee.status === status ? 'btn-info' : 'btn-outline-info',
                 ]"
-                @click="
-                  employee.status = status;
-                  employee.statusType = '';
-                "
+                @click="employee.status = status"
               >
                 {{ status }}
               </button>
@@ -85,6 +95,15 @@
       </tbody>
     </table>
 
+    <!-- Pagination Controls -->
+    <div class="pagination">
+      <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
+      <span>Page {{ currentPage }} of {{ totalPages }}</span>
+      <button @click="nextPage" :disabled="currentPage >= totalPages">
+        Next
+      </button>
+    </div>
+
     <button class="btn btn-primary save-btn" @click="saveAttendance">
       Save Attendance
     </button>
@@ -92,7 +111,8 @@
 </template>
 
 <script>
-import * as XLSX from "xlsx"; // Ensure xlsx is installed for spreadsheet parsing
+import * as XLSX from "xlsx";
+import axios from "axios";
 
 export default {
   data() {
@@ -100,12 +120,26 @@ export default {
       selectedShift: "A-Shift",
       selectedDate: new Date().toISOString().split("T")[0],
       attendanceStatuses: ["Present", "Absent", "Others"],
-      employees: [], // Start with an empty list
+      employees: [],
+      currentPage: 1,
+      pageSize: 5,
+      fromDate: "",
+      toDate: "",
     };
   },
   computed: {
     filteredEmployees() {
-      return this.employees.filter((emp) => emp.shift === this.selectedShift);
+      return this.employees.filter(
+        (emp) =>
+          emp.shift === this.selectedShift && emp.status_category === "Active"
+      );
+    },
+    paginatedEmployees() {
+      const start = (this.currentPage - 1) * this.pageSize;
+      return this.filteredEmployees.slice(start, start + this.pageSize);
+    },
+    totalPages() {
+      return Math.ceil(this.filteredEmployees.length / this.pageSize);
     },
   },
   methods: {
@@ -117,107 +151,252 @@ export default {
       };
       return statusOptions[status] || [];
     },
-    saveAttendance() {
-      console.log("Attendance Saved:", {
+    prevPage() {
+      if (this.currentPage > 1) this.currentPage--;
+    },
+    nextPage() {
+      if (this.currentPage < this.totalPages) this.currentPage++;
+    },
+    async fetchEmployees() {
+      try {
+        const response = await axios.get("http://localhost:5000/api/employees");
+        this.employees = response.data;
+      } catch (err) {
+        console.error("Error fetching employees:", err);
+      }
+    },
+    async saveAttendance() {
+      const records = this.filteredEmployees.map((emp) => ({
         date: this.selectedDate,
-        shift: this.selectedShift,
-        records: this.filteredEmployees,
-      });
+        employee_id: emp.id,
+        shift: emp.shift,
+        status: emp.status,
+        status_type: emp.statusType,
+      }));
+      await axios.post("/api/attendance/save", { records });
       alert("Attendance has been saved!");
     },
-    importSpreadsheet(event) {
-      const file = event.target.files[0];
+    async handleImport() {
+      const file = this.$refs.fileInput.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-        // Assuming columns are "Employee No", "Employee Name", "Shift"
-        this.employees = jsonData.map((row) => ({
-          number: row["Employee No"],
-          name: row["Employee Name"],
-          shift: row["Shift"] || "A-Shift",
-          status: "",
-          statusType: "",
+        const importedData = jsonData.map((row) => ({
+          number: row["Employee No"] || "",
+          name: row["Employee Name"] || "",
+          status: row["Attendance Status"] || "",
+          statusType: row["Status Type"] || "",
+          shift: this.selectedShift,
+          status_category: "Active",
         }));
 
-        console.log("Imported Data:", this.employees);
-        alert("Spreadsheet imported successfully!");
+        this.employees = this.employees.map((emp) => {
+          const match = importedData.find((i) => i.number === emp.number);
+          return match
+            ? {
+                ...emp,
+                status: match.status,
+                statusType: match.statusType,
+              }
+            : emp;
+        });
+
+        alert("Spreadsheet imported and attendance updated!");
       };
+
       reader.readAsArrayBuffer(file);
     },
+    async downloadAttendance() {
+      const response = await axios.post("/api/attendance/download", {
+        from: this.fromDate,
+        to: this.toDate,
+      });
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `attendance_${this.fromDate}_to_${this.toDate}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+    },
+  },
+  mounted() {
+    this.fetchEmployees();
   },
 };
 </script>
 
 <style scoped>
 .set-attendance {
-  padding: 20px;
-}
-
-.selection-container {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.large-input {
-  height: 50px;
-  font-size: 18px;
-  width: 288px;
-}
-
-.upload-btn {
-  height: 40px;
-  font-size: 18px;
-  padding: 10px 10px;
-  display: flex;
-  align-items: center;
-}
-
-.file-input {
-  height: 50px;
-  font-size: 18px;
-  width: 288px;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-.save-btn {
-  margin-top: 15px;
-  font-size: 18px;
-  padding: 10px 20px;
-}
-
-/* Table Styles */
-.custom-table {
-  background-color: white;
-}
-
-.employee-name,
-.employee-number {
-  color: black;
-  font-weight: bold;
-}
-
-/* Button Styles */
-.btn-group {
-  display: flex;
-  gap: 5px;
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  font-family: "Segoe UI", sans-serif;
 }
 
 h2 {
   color: #00c6fb;
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.selection-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 25px;
+  justify-content: space-between;
+}
+
+.input-group {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-weight: 600;
+  color: #333;
+}
+
+.large-input,
+.file-input,
+.form-control {
+  height: 45px;
+  font-size: 16px;
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.file-upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 100%;
+  max-width: 350px;
+  margin-top: 10px;
+}
+
+.upload-btn,
+.save-btn,
+.btn-secondary {
+  background-color: #00c6fb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  width: fit-content;
+  align-self: flex-start;
+}
+
+.upload-btn:hover,
+.save-btn:hover,
+.btn-secondary:hover {
+  background-color: #00aed1;
+}
+
+.table {
+  width: 100%;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  margin-top: 20px;
+}
+
+.custom-table th,
+.custom-table td {
+  vertical-align: middle;
+  text-align: center;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.custom-table th {
+  background-color: #00c6fb;
+  color: white;
+  font-weight: 600;
+}
+
+.employee-name,
+.employee-number {
+  font-weight: bold;
+  color: #333;
+}
+
+.btn-group {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 25px 0;
+}
+
+.pagination button {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: 1px solid #00c6fb;
+  background: white;
+  color: #00c6fb;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.pagination button:hover {
+  background-color: #00c6fb;
+  color: white;
+}
+
+/* Adjust Save Button Placement */
+.save-btn {
+  margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .selection-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .file-upload-container,
+  .upload-btn {
+    width: 100%;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pagination {
+    flex-direction: column;
+  }
 }
 </style>

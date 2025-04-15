@@ -86,6 +86,14 @@ export default {
       this.isCollapsed = !this.isCollapsed;
     },
   },
+  watch: {
+    isCollapsed() {
+      // Force resize to update layout if needed
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+      }, 300);
+    },
+  },
 };
 </script>
 
@@ -97,8 +105,12 @@ export default {
   color: white;
 }
 
-/* Sidebar Styling */
+/* Fixed Sidebar Styling */
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
   width: 240px;
   background: #1b263b;
   padding: 15px;
@@ -107,6 +119,7 @@ export default {
   align-items: center;
   transition: width 0.3s ease-in-out;
   overflow: hidden;
+  z-index: 1000;
 }
 
 .sidebar.collapsed {
@@ -133,10 +146,8 @@ export default {
   gap: 10px;
 }
 
-/* Nav Buttons - Aligned in a single line */
 .sidebar li {
   padding: 12px;
-  text-align: left;
   border-radius: 8px;
   cursor: pointer;
   background: #1e3a5f;
@@ -153,31 +164,27 @@ export default {
   color: #0d1b2a;
 }
 
-/* Nav Items in One Line */
 .nav-link {
   color: inherit;
   text-decoration: none;
   display: flex;
   align-items: center;
   width: 100%;
-  gap: 12px; /* Adds spacing between icon and text */
-  white-space: nowrap; /* Prevents text wrapping */
+  gap: 12px;
+  white-space: nowrap;
 }
 
-/* Increased Icon Size and Spacing */
 .nav-icon {
   font-size: 20px;
-  min-width: 24px; /* Ensures consistent alignment */
+  min-width: 24px;
 }
 
 .nav-text {
   font-size: 16px;
 }
 
-/* Sidebar Collapsed */
 .sidebar.collapsed li {
   justify-content: center;
-  width: 100%;
   padding-left: 0;
 }
 
@@ -185,13 +192,6 @@ export default {
   display: none;
 }
 
-/* Main Content */
-.content {
-  flex: 1;
-  padding: 20px;
-}
-
-/* Button Styling */
 .toggle-btn {
   background: transparent;
   border: none;
@@ -200,5 +200,28 @@ export default {
   cursor: pointer;
   margin-bottom: 15px;
   transition: 0.3s;
+}
+
+/* Main content adjusts for sidebar width */
+.content {
+  margin-left: 240px;
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+.sidebar.collapsed + .content {
+  margin-left: 80px;
+}
+
+/* Scrollbar styling (optional) */
+.content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: #1e3a5f;
+  border-radius: 4px;
 }
 </style>

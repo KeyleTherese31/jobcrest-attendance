@@ -1,5 +1,8 @@
 <template>
   <div class="overview-container">
+    <div class="header">
+      <h2>Overviews</h2>
+    </div>
     <!-- Stats Row -->
     <div class="stats-row">
       <div class="stat-card" v-for="(stat, index) in statsData" :key="index">
@@ -15,10 +18,11 @@
         <h2 class="chart-title">Headcount Distribution</h2>
         <div class="chart-area">
           <apexchart
+            height="100%"
             type="pie"
             :options="pieOptions"
             :series="pieData.series"
-          ></apexchart>
+          />
         </div>
       </div>
 
@@ -34,10 +38,11 @@
         </div>
         <div class="chart-area">
           <apexchart
+            height="100%"
             type="line"
             :options="lineChartOptions"
             :series="lineData.datasets"
-          ></apexchart>
+          />
         </div>
       </div>
     </div>

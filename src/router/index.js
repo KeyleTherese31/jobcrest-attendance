@@ -7,7 +7,6 @@ import Overview from "@/components/OverviewGraphs.vue";
 import SetAttendance from "@/components/SetAttendance.vue";
 import TrackReport from "@/components/TrackReport.vue";
 import EmployeeList from "@/components/EmployeeList.vue";
-import EditEmployeePage from "@/components/EditEmployeePage.vue";
 
 Vue.use(VueRouter);
 
@@ -24,8 +23,8 @@ const routes = [
       { path: "employees", component: EmployeeList },
       {
         path: "/dashboard/employees/edit/:id",
-        name: "editEmployee",
-        component: EditEmployeePage, // Make sure to create this component
+        name: "EditEmployeePage",
+        component: () => import("@/components/EditEmployeePage.vue"),
       },
       {
         path: "employees/add",

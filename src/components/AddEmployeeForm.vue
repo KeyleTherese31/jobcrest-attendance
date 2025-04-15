@@ -94,6 +94,8 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   data() {
     return {
@@ -111,7 +113,7 @@ export default {
     };
   },
   methods: {
-    addEmployee() {
+    async addEmployee() {
       if (
         !this.newEmployee.employeeNo ||
         !this.newEmployee.name ||
@@ -122,8 +124,18 @@ export default {
         alert("Please fill in all required fields!");
         return;
       }
-      alert("Employee saved successfully!");
-      this.$router.push("/dashboard/employees");
+
+      try {
+        await axios.post(
+          "http://localhost:5000/api/employees",
+          this.newEmployee
+        );
+        alert("Employee saved successfully!");
+        this.$router.push("/dashboard/employees");
+      } catch (error) {
+        console.error("Error saving employee:", error);
+        alert("Failed to save employee. Please try again.");
+      }
     },
     cancelForm() {
       if (
@@ -146,19 +158,16 @@ export default {
   border-radius: 10px;
 }
 
-/* Makes form scrollable */
 .form-wrapper {
   max-height: 500px;
   overflow-y: auto;
 }
 
-/* Aligns plant & shift fields */
 .form-row {
   display: flex;
   gap: 15px;
 }
 
-/* Buttons styling */
 .form-buttons {
   display: flex;
   justify-content: space-between;
